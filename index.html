@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Python Slicing Visualization</title>
+    <style>
+        .body {
+        }
+        .box {
+            width: 30px;
+            height: 30px;
+            margin: 2px;
+            display: inline-block;
+            border: 1px solid black;
+        }
+        .container {
+            text-align: center;
+            margin-top: 10px;
+            max-width: 50vw;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+        #display-start-index, #display-stop-index, #display-step-size {
+            display: inline-block;
+        }
+        input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>
+            Python slicing is a way of selecting elements from an array in Python.
+            You can specify a starting index, a stopping index, and a step size. 
+            You can also use negative numbers to select an index from the end of the list. 
+            For example, -1 is the index of the last element of the array, -2 is the second to last
+            element and so on. You can also use negative numbers to specify a step value that goes in reverse. 
+        </p>
+    </div>
+    <div class="container">
+        <input type="number" id="start-index" placeholder="Start Index">
+        <input type="number" id="end-index" placeholder="End Index">
+        <input type="number" id="step-size" placeholder="Step Size">
+    </div>
+
+
+    <div class="container">
+        <h3 class="array-text">arr =</h3>
+    </div>
+    <div class="container" id="original-boxes-container"></div>
+
+    <div class="container">
+        <h3 class="array-text">arr[<div id="display-start-index"></div>:<div id="display-stop-index"></div>:<div id="display-step-size"></div>] =</h3>
+    </div>
+    <div class="container" id="sliced-boxes-container"></div>
+
+    <div class="container">
+        <div id="error-message" class="error-message"></div>
+    </div>
+
+    <script>
+        const totalBoxes = 15;
+
+        function interpolateColor(color1, color2, factor) {
+            if (arguments.length < 3) { 
+                factor = 0.5; 
+            }
+            var result = color1.slice(1).match(/.{2}/g).map(function(hex) {
+                return parseInt(hex, 16);
+            });
+            color2.slice(1).match(/.{2}/g).forEach(function(hex, index) {
+                result[index] = Math.round(result[index] + factor * (parseInt(hex, 16) - result[index]));
+            });
+            return "#" + result.map(function(val) {
+                return val.toString(16).padStart(2, '0');
+            }).join('');
+        }
+
+        function getBlueGradient(numColors) {
+            const startColor = "#00008B"; // Dark blue
+            const endColor = "#89CFF0";   // Baby blue
+            let gradient = [];
+
+            for (let i = 0; i < numColors; i++) {
+                gradient.push(interpolateColor(startColor, endColor, i / (numColors - 1)));
+            }
+
+            return gradient;
+        }
+        const rainbowColors = getBlueGradient(totalBoxes)
+    
+        function createBoxes() {
+            const originalContainer = document.getElementById('original-boxes-container');
+            const slicedContainer = document.getElementById('sliced-boxes-container');
+    
+            for (let i = 0; i < totalBoxes; i++) {
+                let box = document.createElement('div');
+                box.className = 'box';
+                box.style.backgroundColor = rainbowColors[i % rainbowColors.length];
+                originalContainer.appendChild(box.cloneNode(true));
+                slicedContainer.appendChild(box.cloneNode(true));
+            }
+        }
+    
+        function getValueOrUndefined(elementId) {
+            const value = document.getElementById(elementId).value;
+            return (value !== '') ? parseInt(value) : undefined;
+        }
+    
+        function updateSlicedArray() {
+        let startIndex = getValueOrUndefined('start-index');
+        let endIndex = getValueOrUndefined('end-index');
+        let stepSize = getValueOrUndefined('step-size');
+        const errorMessage = document.getElementById('error-message');
+        const originalBoxes = document.getElementById('original-boxes-container').children;
+        const slicedBoxes = document.getElementById('sliced-boxes-container').children;
+
+        const displayStartIndex = document.getElementById('display-start-index');
+        const displayStopIndex = document.getElementById('display-stop-index');
+        const displayStepSize = document.getElementById('display-step-size');
+        displayStartIndex.textContent = startIndex;
+        displayStopIndex.textContent = endIndex;
+        displayStepSize.textContent = stepSize;
+
+
+        if (stepSize === 0) {
+            errorMessage.textContent = 'ValueError: slice step cannot be zero';
+            return;
+        } else {
+            errorMessage.textContent = '';
+        }
+
+        if (stepSize === undefined) {
+            stepSize = 1 
+        }
+        if (startIndex === undefined) {
+            if (stepSize > 0) {
+                startIndex = 0;
+            } else {
+                startIndex = totalBoxes-1;
+            }
+        }
+        if (endIndex === undefined) {
+            if (stepSize > 0) {
+                endIndex = totalBoxes;
+            } else {
+                endIndex = 0;
+            }
+        }
+
+        if (endIndex < 0 ) {
+            endIndex = totalBoxes-Math.abs(endIndex)
+        }
+        if (startIndex < 0 ) {
+            startIndex = totalBoxes-Math.abs(startIndex)
+        }
+
+        startIndex = Math.min(totalBoxes-1, startIndex)
+        endIndex = Math.min(totalBoxes, endIndex)
+
+        // Reset sliced array colors
+        for (let box of slicedBoxes) {
+            box.style.backgroundColor = 'white';
+            box.style.display = "";
+        }
+
+        // Apply slicing
+        try {
+            if (stepSize > 0) {
+                for (let i = startIndex; i < endIndex; i += stepSize) {
+                    if (i >= totalBoxes) break;
+                    slicedBoxes[i].style.backgroundColor = originalBoxes[i].style.backgroundColor;
+                }
+            } else {
+                for (let i = startIndex; i >= endIndex; i += stepSize) {
+                    if (i < 0) break;
+                    slicedBoxes[i].style.backgroundColor = originalBoxes[startIndex-i].style.backgroundColor;
+                }
+            }
+            for (let box of slicedBoxes) {
+                if (box.style.backgroundColor == 'white') {
+                    box.style.display = "none";
+                }
+            }
+        } catch (e) {
+            errorMessage.textContent = 'Invalid slicing parameters';
+        }
+    }
+
+    document.getElementById('start-index').addEventListener('input', updateSlicedArray);
+    document.getElementById('end-index').addEventListener('input', updateSlicedArray);
+    document.getElementById('step-size').addEventListener('input', updateSlicedArray);
+
+    createBoxes();
+    updateSlicedArray();  // Initialize the sliced array
+    </script>
+    
+</body>
+</html>
